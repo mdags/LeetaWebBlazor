@@ -1,0 +1,13 @@
+﻿@inherits LayoutComponentBase
+@using Blazored.Toast.Configuration
+
+@Body
+
+<BlazoredToasts Position="ToastPosition.BottomRight"
+                Timeout="3"
+                IconType="IconType.FontAwesome"
+                ErrorIcon="fa fa-bug"
+                InfoIcon="fa fa-info-circle"
+                SuccessClass="success-toast-override"
+                SuccessIcon="fa fa-thumb-up"
+                WarningIcon="fa fa-exclamation-triangle" />

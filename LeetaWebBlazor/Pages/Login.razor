@@ -1,0 +1,72 @@
+﻿@layout LoginLayout
+@page "/login"
+
+@using DataAccessLibrary;
+@using DataAccessLibrary.Models;
+
+@inject IUserData db
+@inject ProtectedSessionStorage localStorage
+@inject NavigationManager Navigation
+@inject IToastService toastService
+
+<div class="hold-transition login-page">
+    <div class="login-box">
+        <div class="login-logo">
+            <a href="#"><b>Admin</b>LTE</a>
+        </div>
+        <div class="card">
+            <div class="card-body login-card-body">
+                <p class="login-box-msg">Sign in to start your session</p>
+                <EditForm Model="user" OnSubmit="HandleLogin">
+                    <div class="input-group mb-3">
+                        <InputText id="username" @bind-Value="user.user_name" class="form-control" placeholder="username"></InputText>
+                        <div class="input-group-append">
+                            <div class="input-group-text">
+                                <span class="fas fa-envelope"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="input-group mb-3">
+                        <InputText id="password" @bind-Value="user.user_password" type="password" class="form-control" placeholder="password"></InputText>
+                        <div class="input-group-append">
+                            <div class="input-group-text">
+                                <span class="fas fa-lock"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-8">
+
+                        </div>
+                        <div class="col-4">
+                            <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private UserModel user = new UserModel();
+
+    private async void HandleLogin()
+    {
+        var result = await db.Login(user);
+        if (result.Count > 0)
+        {
+            user.role = result[0].role;
+            user.id = result[0].id;
+            //await localStorage.SetAsync("userid", user.id);
+            //await localStorage.SetAsync("username", user.user_name);
+            await ServiceProvider.Get<CustomAuthStateProvider>().LoginAsync(user);
+
+            Navigation.NavigateTo("/");
+        }
+        else
+        {
+            toastService.ShowError("Username or password is wrong..");
+        }
+    }
+}

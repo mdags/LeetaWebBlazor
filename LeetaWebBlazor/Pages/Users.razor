@@ -1,0 +1,251 @@
+﻿@page "/users"
+@attribute [Authorize]
+
+@using DataAccessLibrary;
+@using DataAccessLibrary.Models;
+@using LeetaWebBlazor.Components;
+@using LeetaWebBlazor.Models;
+@using System.IO;
+
+@inject IUserData db
+@inject IJSRuntime JSRuntime
+@inject IToastService toastService
+
+<AuthorizeView>
+    <Authorized>
+        <div class="content-header">
+            <div class="container-fluid">
+                <div class="row mb-2">
+                    <div class="col-sm-9">
+                        <h1 class="m-0 text-dark">Users</h1>
+                    </div>
+                    <div class="col-sm-3">
+                        <button type="button" class="btn btn-block btn-outline-info" @onclick="() => OpenEditDialog(null)">Add New</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <section class="content">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-md-12">
+                        @if (list is null)
+                        {
+                            <p><em>Loading...</em></p>
+                        }
+                        else
+                        {
+                            <div class="row">
+                                <div class="col-12 table-responsive">
+                                    <table id="example" class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Email</th>
+                                                <th>Phone</th>
+                                                <th>Role</th>
+                                                <th>#</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var item in list)
+                                            {
+                                                <tr>
+                                                    <td>@item.user_name</td>
+                                                    <td>@item.user_email</td>
+                                                    <td>@item.user_phone</td>
+                                                    <td>@item.role</td>
+                                                    <td class="text-nowrap col-md-1">
+                                                        <button type="submit" class="btn btn-primary btn-icon-anim btn-square" @onclick="() => OpenEditDialog(item)"><i class="fa fa-edit mt-10"></i></button>
+                                                        <button type="submit" class="btn btn-danger btn-icon-anim btn-square" @onclick="() => OpenConfirmDialog(item)"><i class="fa fa-trash mt-10"></i></button>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </section>
+    </Authorized>
+</AuthorizeView>
+
+@if (ShowEditDialog)
+{
+    <div class="modal fade show" id="myModal" style="display:block; background-color: rgba(10,10,10,.8);" aria-modal="true" role="dialog">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">Category</h4>
+                    <button type="button" class="close" @onclick="() => CloseEditDialog(false)">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <EditForm id="editForm" Model="@newModel" OnValidSubmit="() => CloseEditDialog(true)" class="form-horizontal">
+                        <DataAnnotationsValidator></DataAnnotationsValidator>
+                        <div class="form-group row">
+                            <label for="inputName" class="col-sm-2 col-form-label">Name</label>
+                            <div class="col-sm-10">
+                                <InputText id="user_name" @bind-Value="newModel.user_name" class="form-control" placeholder="Name"></InputText>
+                                <ValidationMessage For="@(() => newModel.user_name)" />
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label for="inputName" class="col-sm-2 col-form-label">Role</label>
+                            <div class="col-sm-10">
+                                <InputSelect @bind-Value="newModel.role" class="form-control">
+                                    <option></option>
+                                    <option value="admin">Admin</option>
+                                    <option value="manager">Manager</option>
+                                </InputSelect>
+                                <ValidationMessage For="@(() => newModel.role)" />
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label for="inputName" class="col-sm-2 col-form-label">Password</label>
+                            <div class="col-sm-10">
+                                <InputText id="user_password" type="password" @bind-Value="newModel.user_password" class="form-control" placeholder="Password"></InputText>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label for="inputName" class="col-sm-2 col-form-label">Email</label>
+                            <div class="col-sm-10">
+                                <InputText id="user_email" @bind-Value="newModel.user_email" class="form-control" placeholder="Email"></InputText>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label for="inputName" class="col-sm-2 col-form-label">Phone</label>
+                            <div class="col-sm-10">
+                                <InputText id="user_phone" @bind-Value="newModel.user_phone" class="form-control" placeholder="Phone"></InputText>
+                            </div>
+                        </div>
+                        @*<div class="form-group">
+                                <InputFile OnChange="@OnFileSelection"></InputFile>
+                                <div class="row">
+                                    <img src="@ImgUrl">
+                                </div>
+                            </div>*@
+                    </EditForm>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary" form="editForm">SAVE</button>
+                    <button type="button" class="btn" @onclick="() => CloseEditDialog(false)">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (ConfirmDialogOpen)
+{
+    <ModalDialog DialogType="ModalDialog.ModalDialogType.DeleteCancel" Title="Confirm" Text="Do you want to delete this record?" OnClose="@OnConfirmDialogClose"></ModalDialog>
+}
+
+@code {
+    private List<DataAccessLibrary.Models.UserModel> list;
+    private DataAccessLibrary.Models.UserModel newModel = new DataAccessLibrary.Models.UserModel();
+    private DataAccessLibrary.Models.UserModel modelToDelete;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JSRuntime.InvokeAsync<object>("DataTablesAdd", "#example");
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        list = await db.GetList();
+    }
+
+    public bool ShowEditDialog { get; set; }
+    private void OpenEditDialog(DataAccessLibrary.Models.UserModel model)
+    {
+        if (model != null)
+        {
+            newModel = model;
+        }
+        ShowEditDialog = true;
+        StateHasChanged();
+    }
+    private async Task CloseEditDialog(bool accepted)
+    {
+        if (accepted)
+        {
+            await SaveItem();
+            toastService.ShowSuccess("Record added.");
+        }
+        newModel = new DataAccessLibrary.Models.UserModel();
+        //ImgUrl = string.Empty;
+        ShowEditDialog = false;
+        StateHasChanged();
+    }
+
+    //public string ImgUrl { get; set; }
+    //FileData fileData;
+    //private async Task OnFileSelection(InputFileChangeEventArgs e)
+    //{
+    //    IBrowserFile imgFile = e.File;
+    //    var buffers = new byte[imgFile.Size];
+    //    await imgFile.OpenReadStream().ReadAsync(buffers);
+    //    string imageType = imgFile.ContentType;
+    //    string fileName = imgFile.Name;
+    //    ImgUrl = $"data:{imageType};base64,{Convert.ToBase64String(buffers)}";
+    //    fileData = new FileData
+    //    {
+    //        Data = buffers,
+    //        FileName = fileName,
+    //        FileType = imageType,
+    //        Size = imgFile.Size
+    //    };
+    //}
+
+    private async Task SaveItem()
+    {
+        //if (fileData != null)
+        //{
+        //    var path = Path.GetFullPath("wwwroot\\uploads\\") + fileData.FileName;
+        //    using (var stream = new FileStream(path, FileMode.Create))
+        //    {
+        //        await stream.WriteAsync(fileData.Data);
+        //    }
+        //    newModel.img_path = fileData.FileName;
+        //}
+        await db.Save(newModel);
+        await OnInitializedAsync();
+        newModel = new DataAccessLibrary.Models.UserModel();
+        //ImgUrl = string.Empty;
+    }
+
+    public EventCallback<bool>
+        OnClose
+    { get; set; }
+    private Task ModalCancel()
+    {
+        return OnClose.InvokeAsync(false);
+    }
+    private Task ModalOk()
+    {
+        return OnClose.InvokeAsync(true);
+    }
+    public bool ConfirmDialogOpen { get; set; }
+    private async Task OnConfirmDialogClose(bool accepted)
+    {
+        if (accepted)
+        {
+            await db.Delete(modelToDelete);
+            await OnInitializedAsync();
+            modelToDelete = null;
+            toastService.ShowSuccess("Record deleted.");
+        }
+        ConfirmDialogOpen = false;
+        StateHasChanged();
+    }
+    private void OpenConfirmDialog(DataAccessLibrary.Models.UserModel model)
+    {
+        ConfirmDialogOpen = true;
+        modelToDelete = model;
+        StateHasChanged();
+    }
+}

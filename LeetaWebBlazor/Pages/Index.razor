@@ -1,0 +1,122 @@
+﻿@page "/"
+@attribute [Authorize]
+
+@using DataAccessLibrary;
+
+@inject ICartData cartDb;
+@inject IOrderData orderDb;
+@inject IOrderDetailData orderDetailDb
+
+<AuthorizeView>
+    <Authorized>
+        <div class="content-header">
+            <div class="container-fluid">
+                <div class="row mb-2">
+                    <div class="col-sm-12">
+                        <h1 class="m-0 text-dark">Dashboard</h1>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <section class="content">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-lg-3 col-6">
+                        <div class="small-box bg-info">
+                            <div class="inner">
+                                <h3>@TotalOrderCount</h3>
+                                <p>New Orders</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fas fa-shopping-bag"></i>
+                            </div>
+                            @*<a href="#" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>*@
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-6">
+                        <div class="small-box bg-danger">
+                            <div class="inner">
+                                <h3>@PendingOrderCount</h3>
+                                <p>Pending Orders</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fas fa-shopping-basket"></i>
+                            </div>
+                            @*<a href="#" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>*@
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-6">
+                        <div class="small-box bg-warning">
+                            <div class="inner">
+                                <h3>@WaitingInCart</h3>
+                                <p>Waiting in Cart</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fas fa-shopping-cart"></i>
+                            </div>
+                            @*<a href="#" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>*@
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-6">
+                        <div class="small-box bg-success">
+                            <div class="inner">
+                                <h3>@TotalEarning.ToString("n2")</h3>
+                                <p>Total Earning</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fas fa-chart-pie"></i>
+                            </div>
+                            @*<a href="#" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>*@
+                        </div>
+                    </div>
+                </div>
+                <!-- Main row -->
+                <div class="row">
+                    <div class="col-12">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Temp. (C)</th>
+                                    <th>Temp. (F)</th>
+                                    <th>Summary</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Date</td>
+                                    <td>Temp. (C)</td>
+                                    <td>Temp. (F)</td>
+                                    <td>Summary</td>
+                                </tr>
+                                <tr>
+                                    <td>Date</td>
+                                    <td>Temp. (C)</td>
+                                    <td>Temp. (F)</td>
+                                    <td>Summary</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- /.row (main row) -->
+            </div><!-- /.container-fluid -->
+        </section>
+        <!-- /.content -->
+    </Authorized>
+</AuthorizeView>
+
+@code{
+    private int TotalOrderCount = 0;
+    private int PendingOrderCount = 0;
+    private int WaitingInCart = 0;
+    private double TotalEarning = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        TotalOrderCount = await orderDetailDb.TotalOrderCount();
+        PendingOrderCount = await orderDetailDb.TotalPendingOrderCount();
+        WaitingInCart = await cartDb.WaitingInCartCount();
+        TotalEarning = await orderDb.TotalOrderEarning();
+    }
+}
